@@ -351,3 +351,6 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+/TaskSolving/Task2.cs
+/TaskSolving/Task3.cs
+/TaskSolving/Task4.cs
