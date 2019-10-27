@@ -1,4 +1,4 @@
-﻿using System;
+﻿ using System;
 
 // Избавьтесь от дублирующегося кода
 namespace TaskSolving
@@ -11,40 +11,38 @@ namespace TaskSolving
             private int _y;
             private bool _isAlive;
 
-            public int X { get => _x; set => _x = value; }
-            public int Y { get => _y; set => _y = value; }
-            public bool isAlive { get => _isAlive; set => _isAlive = value; }
+            public int X { get => _x; private set => _x = value; }
+            public int Y { get => _y; private set => _y = value; }
+            public bool isAlive { get => _isAlive; private set => _isAlive = value; }
 
-            private Entity(int x, int y, bool isAlive)
-            {
-                _x = x;
-                _y = y;
-                _isAlive = isAlive;
-            }
-
-            public static Entity CreateEntity(int x, int y)
+            public Entity(int x, int y, bool isAlive = true)
             {
                 if (x > 0)
                     x = 0;
                 if (y > 0)
                     y = 0;
-                bool isAlive = true;
-                return new Entity(x, y, isAlive);
+                _x = x;
+                _y = y;
+                _isAlive = isAlive;
             }
-
-            public bool ComparePositionTo(Entity entity)
+            public bool IsEqualPositionTo(Entity entity)
             {
                 return (X == entity.X && Y == entity.Y);
             }
 
-            public void MoveRandom(Random random, int maxDistance)
+            public void MoveRandom(Random random, int delta)
             {
-                _x += random.Next(-maxDistance, maxDistance);
-                _y += random.Next(-maxDistance, maxDistance);
+                _x += random.Next(-delta, delta);
+                _y += random.Next(-delta, delta);
                 if (_x < 0)
                     _x = 0;
                 if (_y < 0)
                     _y = 0;
+            }
+
+            public void Die()
+            {
+                _isAlive = false;
             }
         }
 
@@ -59,7 +57,7 @@ namespace TaskSolving
 
         public static void Main(string[] args)
         {
-            Entity[] entities = new Entity[3] { Entity.CreateEntity(5, 5), Entity.CreateEntity(10, 10), Entity.CreateEntity(15, 15) };
+            Entity[] entities = new Entity[3] { new Entity(5, 5), new Entity(10, 10), new Entity(15, 15) };
             Random random = new Random();
 
             while (true)
@@ -68,10 +66,10 @@ namespace TaskSolving
                 {
                     for(int j=i+1; j < entities.Length;j++)
                     {
-                        if(entities[i].ComparePositionTo(entities[j]))
+                        if(entities[i].IsEqualPositionTo(entities[j]))
                         {
-                            entities[i].isAlive = false;
-                            entities[j].isAlive = false;
+                            entities[i].Die();
+                            entities[j].Die();
                         }
                     }
                 }
