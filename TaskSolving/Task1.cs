@@ -1,13 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 
-//  Через объект этого класса UsersHolder мы можем:
-//  1)Получить пользователя по имени
-//  2)Получить пользователя по Id
-//  3)Получить всех пользователей
-//  4)Получить пользователей у которых зарплата больше N
-//  5)Получить пользователей у которых зарплата меньше N
-//  6)Получить пользователей у которых зарплата от N1 до N2
 namespace TaskSolving
 {
     internal class User
@@ -22,30 +15,28 @@ namespace TaskSolving
 
         private User(int id, string name, int salary)
         {
+            if (id < 0)
+                throw new ArgumentOutOfRangeException("id");
+            if (name == null)
+                throw new ArgumentNullException("name");
+            if (salary < 0)
+                throw new ArgumentOutOfRangeException("salary");
+
             _name = name;
             _salary = salary;
             _id = id;
         }
-
-        public static User CreateNewUser(int id, string name, int salary)
-        {
-            if (id < 0)
-                throw new ArgumentOutOfRangeException("id");
-            if (name == null)
-                throw new ArgumentOutOfRangeException("name");
-            if (salary < 0)
-                throw new ArgumentOutOfRangeException("salary");
-            return new User(id, name, salary);
-        }
     }
 
-    internal class UsersHolder
+    internal class UsersStorage
     {
         private List<User> _users;
-        public UsersHolder()
+
+        public UsersStorage()
         {
             _users = new List<User>();
         }
+
         public bool TryAddUser(User user)
         {
             if (TryFindUserByNameOrId(user.Id, user.Name))
@@ -72,23 +63,22 @@ namespace TaskSolving
 
         public List<User> GetUsersWithSalaryMore(int salary)
         {
-            return _users.FindAll(delegate (User user) { return user.Salary > salary; });
+            return _users.FindAll((User user) => user.Salary > salary);
         }
 
         public List<User> GetUsersWithSalaryLess(int salary)
         {
-            return _users.FindAll(delegate (User user) { return user.Salary < salary; });
+            return _users.FindAll((User user) => user.Salary < salary);
         }
 
         public List<User> GetUsersWithSalaryBetween(int minSalary, int maxSalary)
         {
-            return _users.FindAll(delegate (User user) { return user.Salary >= minSalary && user.Salary <= maxSalary; });
+            return _users.FindAll((User user) => user.Salary >= minSalary && user.Salary <= maxSalary);
         }
 
         private bool TryFindUserByNameOrId(int id, string name)
         {
-            return _users.Find(delegate (User user) { return (user.Id == id || user.Name == name); }) != null;
+            return _users.Find((User user) => (user.Id == id || user.Name == name)) != null;
         }
-
     }
 }
