@@ -1,25 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TaskSolving
 {
-    // Сделайте консольную программу, через которую можно запускать команды.Например:
-    // 1. Создать счёт в системе
-    // 2. Перевести деньги с одного счёта на другой
-    // 3. Закрыть счёт
-    // Команды должны запускать через простой консольный интерфейс(просто вводится название команды).
-    // Важной особенностью является спец.команда - undo.Она отменяет команду.Вызов двух undo
-    // подряд отменит две предыдущие команды.
-
-    class BankSystem
+    internal class BankSystem
     {
-        List<Account> accounts;
-        IBankCommand[] commands;
+        private List<Account> accounts;
+        private Stack<BankCommand> commands;
 
-        bool TryAddUser(Account account)
+        public bool TryAddUser(Account account)
         {
             if (hasAccount(account.Id))
                 return false;
@@ -28,29 +18,71 @@ namespace TaskSolving
             return true;
         }
 
-        bool hasAccount(int id)
+        public bool hasAccount(int id)
         {
             return (accounts.FirstOrDefault((Account account) => (account.Id == id))) != null;
         }
 
-        Account TryGetAccount(int id)
+        public bool TryGetAccount(int id, out Account account)
         {
-            Account account = accounts.FirstOrDefault((Account _account) => (_account.Id == id));
+            account = accounts.FirstOrDefault((Account _account) => (_account.Id == id));
             if (account == null)
-                throw new ArgumentNullException();
-            return account;
+                return false;
+            return true;
         }
+
+        public void Undo()
+        {
+            BankCommand lastCommand = commands.Pop();
+            lastCommand.Undo();
+        }
+
+        public bool TryCreateAccount(int id, int money)
+        {
+            try
+            {
+                commands.Push(new CreateAccount(accounts, new Account(id, money)));
+            }
+            catch(Exception e)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        public bool TryMakeTranfer(int id1, int id2, int ammount)
+        {
+            Account firstAccount = accounts.Find(account => account.Id == id1);
+            Account secondAccount = accounts.Find(account => account.Id == id2);
+
+            if (firstAccount == null || secondAccount == null)
+                return false;
+
+            commands.Push(new Tranfer(firstAccount, secondAccount, ammount));
+            return true;
+        }
+
+        public bool TryCloseAccount(int id)
+        {
+            Account _account = accounts.Find(account => account.Id == id);
+            if (_account == null)
+                return false;
+
+            commands.Push(new CloseAccount(accounts, _account));
+            return true;
+        }
+
     }
 
-    class Account
+    internal class Account
     {
-        int _id;
-        int _money;
+        private int _id;
+        private int _money;
 
         public int Id { get => _id; private set => _id = value; }
         public int Money { get => _money; private set => _money = value; }
 
-        Account(int id, int money = 0)
+        public Account(int id, int money = 0)
         {
             if (money < 0)
                 throw new ArgumentOutOfRangeException("money");
@@ -61,60 +93,97 @@ namespace TaskSolving
             _money = money;
         }
 
-        void Transfer(Account receiver, int amount)
+        public static void Transfer(Account sender, Account receiver, int amount)
         {
-            if (amount > _money || amount < 0)
+            if (amount > sender._money || amount < 0)
                 throw new ArgumentOutOfRangeException("amount");
 
             receiver._money += amount;
-            _money -= amount;
+            sender._money -= amount;
         }
     }
 
-    interface IBankCommand
+    internal abstract class BankCommand
     {
-        void Do(List<Account> accounts);
-        void Undo();
+        private List<Account> _accounts;
+        protected bool _isActive;
+        public bool IsActive { get => _isActive; }
+
+        public BankCommand()
+        {
+            _isActive = true;
+        }
+
+        public void Undo()
+        {
+            if (_isActive)
+            {
+                CancelAction();
+                _isActive = false;
+            }
+            else
+                throw new InvalidOperationException();
+        }
+
+        protected abstract void CancelAction();
     }
 
-    class CreateAccount : IBankCommand
+    internal class CreateAccount : BankCommand
     {
-        List<Account> _accounts;
-        public void Do(List<Account> accounts)
+        private List<Account> _accounts;
+        private Account _createdAccount;
+
+        public CreateAccount(List<Account> accounts, Account account) : base()
         {
             _accounts = accounts;
-            throw new NotImplementedException();
+            _createdAccount = account;
+            _accounts.Add(_createdAccount);
         }
 
-        public void Undo()
+        protected override void CancelAction()
         {
-            throw new NotImplementedException();
-        }
-    }
-
-    class Tranfer : IBankCommand
-    {
-        public void Do(List<Account> accounts)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Undo()
-        {
-            throw new NotImplementedException();
+            _accounts.Remove(_createdAccount);
         }
     }
 
-    class CloseAccount : IBankCommand
+    internal class Tranfer : BankCommand
     {
-        public void Do(List<Account> accounts)
+        private Account _sender;
+        private Account _receiver;
+        private int _ammount;
+
+        public Tranfer(Account sender, Account receiver, int ammount) : base()
         {
-            throw new NotImplementedException();
+            _sender = sender;
+            _receiver = receiver;
+            _ammount = ammount;
+            Account.Transfer(sender, receiver, ammount);
         }
 
-        public void Undo()
+        protected override void CancelAction()
         {
-            throw new NotImplementedException();
+            Account.Transfer(_receiver, _sender, _ammount);
+        }
+    }
+
+    internal class CloseAccount : BankCommand
+    {
+        private List<Account> _accounts;
+        private Account _closedAccount;
+        public CloseAccount(List<Account> accounts, Account account)
+        {
+            _accounts = accounts;
+            _closedAccount = account;
+
+            if (_accounts.Find((Account) => Account == account) != null)
+                accounts.Remove(_closedAccount);
+            else
+                throw new ArgumentException("account");
+        }
+
+        protected override void CancelAction()
+        {
+            _accounts.Add(_closedAccount);
         }
     }
 }
